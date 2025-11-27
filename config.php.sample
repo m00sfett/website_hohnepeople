@@ -14,6 +14,9 @@ return [
         'default_theme' => 'neo',
         'cookie_ttl_days' => 180,
         'use_pretty_urls' => true,
+        // Optional: set to your public site URL (e.g. https://example.com) to pin canonical links and sitemaps
+        // even when behind a proxy or during CLI generation.
+        'base_url' => null,
     ],
     'features' => [
         'reactions' => false,

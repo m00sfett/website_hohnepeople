@@ -442,9 +442,112 @@ function buildSitemap(PDO $pdo): string
 
 function getBaseOrigin(): string
 {
+    static $cached;
+    if ($cached) {
+        return $cached;
+    }
+
+    global $config;
+    $configured = $config['site']['base_url'] ?? null;
+    $normalizedConfigBase = normalizeBaseUrl($configured);
+    if ($normalizedConfigBase !== null) {
+        $cached = $normalizedConfigBase;
+        return $cached;
+    }
+
     $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
-    $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
-    return $scheme . '://' . $host;
+    $hostHeader = (string)($_SERVER['HTTP_HOST'] ?? '');
+    $sanitizedHost = sanitizeHost($hostHeader);
+
+    if ($sanitizedHost === null) {
+        $serverName = (string)($_SERVER['SERVER_NAME'] ?? '');
+        $sanitizedHost = sanitizeHost($serverName);
+    }
+
+    if ($sanitizedHost === null) {
+        $sanitizedHost = 'localhost';
+        $serverPort = isset($_SERVER['SERVER_PORT']) ? (int)$_SERVER['SERVER_PORT'] : null;
+        if ($serverPort && !in_array($serverPort, [80, 443], true)) {
+            $sanitizedHost .= ':' . $serverPort;
+        }
+    }
+
+    $cached = $scheme . '://' . $sanitizedHost;
+    return $cached;
+}
+
+function normalizeBaseUrl(?string $url): ?string
+{
+    if ($url === null) {
+        return null;
+    }
+
+    $trimmed = trim($url);
+    if ($trimmed === '') {
+        return null;
+    }
+
+    $parts = parse_url($trimmed);
+    if ($parts === false || empty($parts['scheme']) || empty($parts['host'])) {
+        return null;
+    }
+
+    $scheme = strtolower($parts['scheme']);
+    if (!in_array($scheme, ['http', 'https'], true)) {
+        return null;
+    }
+
+    $hostPort = $parts['host'] . (isset($parts['port']) ? ':' . $parts['port'] : '');
+    $sanitizedHost = sanitizeHost($hostPort);
+    if ($sanitizedHost === null) {
+        return null;
+    }
+
+    $normalized = $scheme . '://' . $sanitizedHost;
+    if (!empty($parts['path']) && $parts['path'] !== '/') {
+        $normalized .= rtrim($parts['path'], '/');
+    }
+    return $normalized;
+}
+
+function sanitizeHost(string $host): ?string
+{
+    $clean = trim($host);
+    if ($clean === '' || strpbrk($clean, "\r\n") !== false) {
+        return null;
+    }
+
+    if (str_contains($clean, '://')) {
+        return null;
+    }
+
+    $parsed = parse_url('//' . $clean);
+    if ($parsed === false || empty($parsed['host'])) {
+        return null;
+    }
+
+    $hostname = $parsed['host'];
+    $port = $parsed['port'] ?? null;
+
+    $isValidDomain = filter_var($hostname, FILTER_VALIDATE_DOMAIN, FILTER_FLAG_HOSTNAME) !== false || $hostname === 'localhost';
+    $isValidIp = filter_var($hostname, FILTER_VALIDATE_IP) !== false;
+    if (!$isValidDomain && !$isValidIp) {
+        return null;
+    }
+
+    $normalizedHost = $hostname;
+    if ($isValidIp && str_contains($hostname, ':')) {
+        $normalizedHost = '[' . $hostname . ']';
+    }
+
+    if ($port !== null) {
+        if ($port < 1 || $port > 65535) {
+            return null;
+        }
+        return $normalizedHost . ':' . $port;
+    }
+
+    return $normalizedHost;
 }
 
 function buildSwitcherUrl(array $params): string
