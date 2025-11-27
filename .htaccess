@@ -1,0 +1,17 @@
+RewriteEngine On
+
+RewriteCond %{REQUEST_FILENAME} -f [OR]
+RewriteCond %{REQUEST_FILENAME} -d
+RewriteRule ^ - [L]
+
+RewriteRule ^sitemap\.xml$ index.php?page=sitemap [L,QSA]
+RewriteRule ^video/([^/]+)/?$ index.php?page=video&slug=$1 [L,QSA]
+RewriteRule ^review/([^/]+)/?$ index.php?page=review&slug=$1 [L,QSA]
+RewriteRule ^videos/?$ index.php?page=videos [L,QSA]
+RewriteRule ^reviews/?$ index.php?page=reviews [L,QSA]
+RewriteRule ^about/?$ index.php?page=page&slug=about [L,QSA]
+RewriteRule ^imprint/?$ index.php?page=page&slug=imprint [L,QSA]
+RewriteRule ^privacy/?$ index.php?page=page&slug=privacy [L,QSA]
+RewriteRule ^links/?$ index.php?page=links [L,QSA]
+RewriteRule ^$ index.php [L,QSA]
+RewriteRule ^.*$ index.php [L,QSA]

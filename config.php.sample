@@ -1,0 +1,24 @@
+<?php
+return [
+    'db' => [
+        'host' => 'localhost',
+        'port' => 3306,
+        'name' => 'hohnepeople',
+        'user' => 'hohnepeople',
+        'pass' => 'change-me',
+        'charset' => 'utf8mb4',
+    ],
+    'site' => [
+        'default_lang' => 'de',
+        'supported_langs' => ['de', 'en'],
+        'default_theme' => 'neo',
+        'cookie_ttl_days' => 180,
+        'use_pretty_urls' => true,
+    ],
+    'features' => [
+        'reactions' => false,
+    ],
+    'security' => [
+        'nonce_salt' => 'replace-with-long-random-string',
+    ],
+];
