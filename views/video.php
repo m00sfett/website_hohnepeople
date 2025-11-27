@@ -10,13 +10,20 @@ $linkedReviews ??= [];
         <p><?= h(text('video.notFoundBody', 'We could not find details for this video.')) ?></p>
     <?php else: ?>
         <?php
-        $embedSrc = $video['platform'] === 'youtube'
+        $rawEmbedSrc = $video['platform'] === 'youtube'
             ? 'https://www.youtube.com/embed/' . rawurlencode($video['platform_ref']) . '?rel=0'
-            : $video['primary_url'];
+            : ($video['primary_url'] ?? null);
+        $embedSrc = sanitizeUrl($rawEmbedSrc);
         ?>
         <div class="video-hero">
             <div class="video-frame">
-                <iframe src="<?= h($embedSrc) ?>" title="<?= h($video['title']) ?>" loading="lazy" allowfullscreen></iframe>
+                <?php if ($embedSrc): ?>
+                    <iframe src="<?= h($embedSrc) ?>" title="<?= h($video['title']) ?>" loading="lazy" allowfullscreen></iframe>
+                <?php else: ?>
+                    <div class="embed-fallback">
+                        <?= h(text('video.embedUnavailable', 'We cannot display this video because the link is unsafe or invalid.')) ?>
+                    </div>
+                <?php endif; ?>
             </div>
             <div class="hero-meta">
                 <p class="badge"><?= strtoupper($video['platform']) ?> · <?= formatDate($video['publish_date']) ?></p>
@@ -30,9 +37,14 @@ $linkedReviews ??= [];
                 <?php if (!empty($videoLinks)): ?>
                     <div class="links-bar">
                         <?php foreach ($videoLinks as $link): ?>
-                            <a href="<?= h($link['url']) ?>" target="_blank" rel="noopener">
-                                <?= h($link['label'] ?: text('video.link', 'Link')) ?>
-                            </a>
+                            <?php $safeLink = sanitizeUrl($link['url'] ?? null); ?>
+                            <?php if ($safeLink): ?>
+                                <a href="<?= h($safeLink) ?>" target="_blank" rel="noopener">
+                                    <?= h($link['label'] ?: text('video.link', 'Link')) ?>
+                                </a>
+                            <?php else: ?>
+                                <span class="link-fallback"><?= h($link['label'] ?: text('video.link', 'Link')) ?></span>
+                            <?php endif; ?>
                         <?php endforeach; ?>
                     </div>
                 <?php endif; ?>
@@ -60,7 +72,12 @@ $linkedReviews ??= [];
                     </div>
                     <div class="card-footer">
                         <a href="<?= h(buildUrl('video', ['slug' => $item['slug']])) ?>">Details</a>
-                        <a href="<?= h($item['primary_url']) ?>" target="_blank" rel="noopener">External</a>
+                        <?php $relatedUrl = sanitizeUrl($item['primary_url'] ?? null); ?>
+                        <?php if ($relatedUrl): ?>
+                            <a href="<?= h($relatedUrl) ?>" target="_blank" rel="noopener">External</a>
+                        <?php else: ?>
+                            <span class="link-fallback">External link unavailable</span>
+                        <?php endif; ?>
                     </div>
                 </article>
             <?php endforeach; ?>

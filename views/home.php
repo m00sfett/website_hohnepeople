@@ -4,10 +4,21 @@
         <a href="<?= h(buildUrl('videos')) ?>">All videos</a>
     </h2>
     <?php if (!empty($latest)): ?>
-        <?php $embedSrc = $latest['platform'] === 'youtube' ? 'https://www.youtube.com/embed/' . rawurlencode($latest['platform_ref']) . '?rel=0' : $latest['primary_url']; ?>
+        <?php
+        $rawEmbedSrc = $latest['platform'] === 'youtube'
+            ? 'https://www.youtube.com/embed/' . rawurlencode($latest['platform_ref']) . '?rel=0'
+            : ($latest['primary_url'] ?? null);
+        $embedSrc = sanitizeUrl($rawEmbedSrc);
+        ?>
         <article class="hero-card">
             <div>
-                <iframe src="<?= h($embedSrc) ?>" title="<?= h($latest['title']) ?>" loading="lazy" allowfullscreen></iframe>
+                <?php if ($embedSrc): ?>
+                    <iframe src="<?= h($embedSrc) ?>" title="<?= h($latest['title']) ?>" loading="lazy" allowfullscreen></iframe>
+                <?php else: ?>
+                    <div class="embed-fallback">
+                        <?= h(text('video.embedUnavailable', 'We cannot display this video because the link is unsafe or invalid.')) ?>
+                    </div>
+                <?php endif; ?>
             </div>
             <div class="hero-meta">
                 <p class="badge"><?= strtoupper($latest['platform']) ?> · <?= formatDate($latest['publish_date']) ?></p>
@@ -50,7 +61,12 @@
                 </div>
                 <div class="card-footer">
                     <a href="<?= h(buildUrl('video', ['slug' => $video['slug']])) ?>">Open</a>
-                    <a href="<?= h($video['primary_url']) ?>" target="_blank" rel="noopener">External</a>
+                    <?php $externalUrl = sanitizeUrl($video['primary_url'] ?? null); ?>
+                    <?php if ($externalUrl): ?>
+                        <a href="<?= h($externalUrl) ?>" target="_blank" rel="noopener">External</a>
+                    <?php else: ?>
+                        <span class="link-fallback">External link unavailable</span>
+                    <?php endif; ?>
                 </div>
             </article>
         <?php endforeach; ?>
