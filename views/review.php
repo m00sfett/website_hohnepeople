@@ -37,7 +37,12 @@ $reviewVideos ??= [];
                     </div>
                     <div class="card-footer">
                         <a href="<?= h(buildUrl('video', ['slug' => $video['slug']])) ?>">Details</a>
-                        <a href="<?= h($video['primary_url']) ?>" target="_blank" rel="noopener">External</a>
+                        <?php $reviewVideoUrl = sanitizeUrl($video['primary_url'] ?? null); ?>
+                        <?php if ($reviewVideoUrl): ?>
+                            <a href="<?= h($reviewVideoUrl) ?>" target="_blank" rel="noopener">External</a>
+                        <?php else: ?>
+                            <span class="link-fallback">External link unavailable</span>
+                        <?php endif; ?>
                     </div>
                 </article>
             <?php endforeach; ?>

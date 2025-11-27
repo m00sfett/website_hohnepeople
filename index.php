@@ -206,7 +206,7 @@ function loadVideos(PDO $pdo, string $lang, string $fallback, int $limit, int $o
     $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
     $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
     $stmt->execute();
-    return $stmt->fetchAll();
+    return array_map('sanitizeVideoRecord', $stmt->fetchAll());
 }
 
 function countVideos(PDO $pdo): int
@@ -227,7 +227,9 @@ function loadLatestVideo(PDO $pdo, string $lang, string $fallback): ?array
         LIMIT 1';
     $stmt = $pdo->prepare($sql);
     $stmt->execute(['lang' => $lang, 'fallback' => $fallback]);
-    return $stmt->fetch() ?: null;
+    $video = $stmt->fetch();
+
+    return $video ? sanitizeVideoRecord($video) : null;
 }
 
 function loadVideoBySlug(PDO $pdo, string $slug, string $lang, string $fallback): ?array
@@ -243,14 +245,14 @@ function loadVideoBySlug(PDO $pdo, string $slug, string $lang, string $fallback)
     $stmt = $pdo->prepare($sql);
     $stmt->execute(['slug' => $slug, 'lang' => $lang, 'fallback' => $fallback]);
     $video = $stmt->fetch();
-    return $video ?: null;
+    return $video ? sanitizeVideoRecord($video) : null;
 }
 
 function loadVideoLinks(PDO $pdo, int $videoId): array
 {
     $stmt = $pdo->prepare('SELECT kind, label, url FROM video_links WHERE video_id = :video ORDER BY sort_order ASC');
     $stmt->execute(['video' => $videoId]);
-    return $stmt->fetchAll();
+    return array_map('sanitizeVideoLink', $stmt->fetchAll());
 }
 
 function loadRelatedVideos(PDO $pdo, int $videoId, string $lang, string $fallback): array
@@ -264,7 +266,7 @@ function loadRelatedVideos(PDO $pdo, int $videoId, string $lang, string $fallbac
         LIMIT 3';
     $stmt = $pdo->prepare($sql);
     $stmt->execute(['video' => $videoId, 'lang' => $lang, 'fallback' => $fallback]);
-    return $stmt->fetchAll();
+    return array_map('sanitizeVideoRecord', $stmt->fetchAll());
 }
 
 function loadReviews(PDO $pdo, string $lang, string $fallback, ?int $limit = null): array
@@ -383,6 +385,48 @@ function formatDate(string $date): string
 {
     $dt = new DateTime($date);
     return $dt->format('d M Y');
+}
+
+function sanitizeUrl(?string $url): ?string
+{
+    if ($url === null) {
+        return null;
+    }
+
+    $clean = trim($url);
+    if ($clean === '') {
+        return null;
+    }
+
+    // Strip control characters and whitespace that may precede a protocol.
+    $clean = preg_replace('/^[\p{C}\s]+/u', '', $clean);
+
+    $parts = parse_url($clean);
+    if ($parts === false || empty($parts['scheme'])) {
+        return null;
+    }
+
+    $scheme = strtolower((string)$parts['scheme']);
+    if (!in_array($scheme, ['http', 'https'], true)) {
+        return null;
+    }
+
+    return filter_var($clean, FILTER_VALIDATE_URL) ? $clean : null;
+}
+
+function sanitizeVideoRecord(array $video): array
+{
+    $video['primary_url'] = sanitizeUrl($video['primary_url'] ?? null);
+    $video['thumbnail_url'] = sanitizeUrl($video['thumbnail_url'] ?? null);
+
+    return $video;
+}
+
+function sanitizeVideoLink(array $link): array
+{
+    $link['url'] = sanitizeUrl($link['url'] ?? null);
+
+    return $link;
 }
 
 function h(?string $value): string
