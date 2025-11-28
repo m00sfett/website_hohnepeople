@@ -1,0 +1,59 @@
+name: Deploy to InfinityFree
+
+on:
+  push:
+    branches: ["main"]           # deploy on direct pushes to main
+  pull_request:
+    types: [closed]              # deploy when a PR was merged into main
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Show changes only (no upload)"
+        type: boolean
+        default: false
+
+jobs:
+  deploy:
+    # only run on: push to main, or merged PR into main, or manual dispatch
+    if: |
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'push' && startsWith(github.ref, 'refs/heads/main')) ||
+      (github.event_name == 'pull_request' &&
+       github.event.pull_request.merged == true &&
+       github.event.pull_request.base.ref == 'main')
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # Optional: build step for static sites (uncomment if needed)
+      # - name: Build
+      #   run: |
+      #     npm ci
+      #     npm run build
+
+      - name: Sync via FTP
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.6
+        with:
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          port: ${{ secrets.FTP_PORT }}
+          # protocol: ftps            # try FTPS first if your host supports it
+          protocol: ftp               # fallback: plain FTP (works on InfinityFree)
+          server-dir: ${{ secrets.FTP_SERVER_DIR }}
+          local-dir: ./               # or ./dist/ if you build into dist/
+          dry-run: ${{ inputs.dry_run || 'false' }}
+          exclude: |
+            **/.git*
+            **/.git*/**
+            **/.github/**
+            **/node_modules/**
+            **/tests/**
+            **/*.md
+            **/README*
+          log-level: standard
+          # security: loose            # if FTPS cert mismatch causes handshake errors
+          # dangerous-clean-slate: false
