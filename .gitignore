@@ -1,0 +1,36 @@
+# Environment and configuration secrets
+config.php
+config.local.php
+*.env
+*.env.*
+
+# Database dumps and backups
+*.sql
+*.sql.*
+*.dump
+*.bak
+*.backup
+
+# Runtime caches, logs, and coverage output
+*.log
+logs/
+cache/
+storage/
+coverage/
+.phpunit.result.cache
+
+# User uploads and generated assets
+uploads/
+assets/uploads/
+sessions/
+
+# Dependencies and build artifacts
+vendor/
+node_modules/
+composer.phar
+
+# OS/editor noise
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
