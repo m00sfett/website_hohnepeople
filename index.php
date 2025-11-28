@@ -1,6 +1,8 @@
 <?php
 declare(strict_types=1);
 
+require_once __DIR__ . '/sanitizer.php';
+
 $configPath = __DIR__ . '/config.php';
 if (!file_exists($configPath)) {
     exit('Please copy config.php.sample to config.php and fill in your database credentials.');
@@ -611,8 +613,3 @@ function text(string $key, string $fallback = ''): string
     return $siteTexts[$key] ?? ($fallback ?: $key);
 }
 
-function safeHtml(?string $html): string
-{
-    $allowed = '<p><br><strong><em><a><ul><ol><li>';
-    return strip_tags((string)$html, $allowed);
-}
